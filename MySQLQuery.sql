@@ -8,13 +8,16 @@ GROUP BY YEAR(Sales.OrderDate), MONTH(Sales.OrderDate)
 ORDER BY Year, Month, Sum;
 
 --Задача 3
-SELECT TOP 10 CityCustomer.City AS Город, COUNT(CityCustomer.CustomerID) AS Приоритет FROM (SELECT Customer.CustomerID, Address.City FROM Sales.Customer AS Customer
-INNER JOIN Sales.SalesOrderHeader AS SalesHeader ON SalesHeader.CustomerID = Customer.CustomerID
-INNER JOIN Person.Address AS Address ON Address.AddressID = SalesHeader.ShipToAddressID
-WHERE StoreID IS NULL
-GROUP BY Customer.CustomerID, Address.City) CityCustomer
-GROUP BY CityCustomer.City
-ORDER BY COUNT(CityCustomer.CustomerID) DESC
+SELECT TOP 10 City.City AS Город, COUNT(Person.CustomerID) AS Приоритет FROM (SELECT DISTINCT City FROM Person.Address
+WHERE NOT City IN (SELECT DISTINCT City FROM Sales.vStoreWithAddresses)) City
+LEFT JOIN (SELECT DISTINCT Customer.CustomerID, Address.City FROM Person.Person
+INNER JOIN Sales.Customer ON Customer.PersonID = Person.BusinessEntityID
+INNER JOIN Person.BusinessEntity ON BusinessEntity.BusinessEntityID = Person.BusinessEntityID
+INNER JOIN Person.BusinessEntityAddress ON BusinessEntityAddress.BusinessEntityID = BusinessEntity.BusinessEntityID
+INNER JOIN Person.Address ON Address.AddressID = BusinessEntityAddress.AddressID) Person 
+ON Person.City = City.City
+GROUP BY City.City
+ORDER BY COUNT(Person.CustomerID) DESC
 
 --Задача 4
 SELECT Person.LastName AS 'Фамилия покупателя', Person.FirstName AS 'Имя покупателя', Product.Name 'Название продукта', SUM(SalesOrderDetail.OrderQty) 'Количество купленных экземпляров' FROM Person.Person
