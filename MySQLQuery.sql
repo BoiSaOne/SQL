@@ -45,19 +45,26 @@ GROUP BY SalesOrderHeader.OrderDate, Person.LastName, Person.FirstName
 ORDER BY SalesOrderHeader.OrderDate DESC
 
 --Задача 6
-;WITH Recursives AS (SELECT BusinessEntityID, OrganizationLevel, BirthDate, HireDate, FIO, BirthDate AS BirthDateDirector, HireDate AS HireDateDirector, FIO AS FIODirector FROM 
-(SELECT Employee.BusinessEntityID, OrganizationLevel, BirthDate, HireDate, CONCAT(Person.FirstName, ' ', LEFT(Person.LastName, 1), '.', LEFT(Person.MiddleName, 1), '.') AS FIO FROM HumanResources.Employee
-INNER JOIN Person.Person ON Person.BusinessEntityID = Employee.BusinessEntityID) AS Employee
-WHERE OrganizationLevel IS NULL
-UNION ALL
-SELECT T.BusinessEntityID, T.OrganizationLevel, T.BirthDate, T.HireDate, T.FIO, R.BirthDate, R.HireDate, R.FIO FROM (SELECT Employee.BusinessEntityID, OrganizationLevel, BirthDate, HireDate, CONCAT(Person.FirstName, ' ', LEFT(Person.LastName, 1), '.', LEFT(Person.MiddleName, 1), '.') AS FIO FROM HumanResources.Employee
-INNER JOIN Person.Person ON Person.BusinessEntityID = Employee.BusinessEntityID) AS T 
-INNER JOIN Recursives AS R ON T.OrganizationLevel = R.BusinessEntityID)
 SELECT FIODirector AS 'Имя руководителя', HireDateDirector AS 'Дата приема руководителя на работу', BirthDateDirector AS 'Дата рождения руководителя',
-FIO AS 'Имя сотрудника', HireDate AS 'Дата приема сотрудника на работу', BirthDate AS 'Дата рождения сотрудника' FROM Recursives
+FIO AS 'Имя сотрудника', HireDate AS 'Дата приема сотрудника на работу', BirthDate AS 'Дата рождения сотрудника'
+FROM (SELECT emp.OrganizationLevel, emp.BusinessEntityID AS EmployeeID, emp.HireDate AS HireDate,  emp.BirthDate AS BirthDate, CONCAT(Person.LastName, ' ', Person.FirstName, '.', Person.MiddleName) AS FIO,
+  (SELECT  man.BusinessEntityID FROM HumanResources.Employee man 
+	    WHERE emp.OrganizationNode.GetAncestor(1) = man.OrganizationNode OR 
+		    (emp.OrganizationNode.GetAncestor(1) = 0x AND man.OrganizationNode IS NULL)) AS ManagerID,
+  (SELECT  man.HireDate FROM HumanResources.Employee man 
+	    WHERE emp.OrganizationNode.GetAncestor(1) = man.OrganizationNode OR 
+		    (emp.OrganizationNode.GetAncestor(1) = 0x AND man.OrganizationNode IS NULL)) AS HireDateDirector,
+  (SELECT  man.BirthDate FROM HumanResources.Employee man 
+	    WHERE emp.OrganizationNode.GetAncestor(1) = man.OrganizationNode OR 
+		    (emp.OrganizationNode.GetAncestor(1) = 0x AND man.OrganizationNode IS NULL)) AS BirthDateDirector,
+  (SELECT  CONCAT(Person.LastName, ' ', Person.FirstName, '.', Person.MiddleName) FROM HumanResources.Employee man 
+		INNER JOIN Person.Person ON Person.BusinessEntityID = man.BusinessEntityID
+	    WHERE emp.OrganizationNode.GetAncestor(1) = man.OrganizationNode OR 
+		    (emp.OrganizationNode.GetAncestor(1) = 0x AND man.OrganizationNode IS NULL)) AS FIODirector
+FROM HumanResources.Employee emp
+INNER JOIN Person.Person ON Person.BusinessEntityID = emp.BusinessEntityID) TAB
 WHERE HireDateDirector > HireDate AND BirthDateDirector > BirthDate
 ORDER BY OrganizationLevel, FIODirector, FIO
-GO
 
 --Задача 7
 CREATE PROCEDURE SingleMen (
@@ -66,8 +73,9 @@ CREATE PROCEDURE SingleMen (
 	@count AS int OUTPUT
 )
 AS
-SELECT @count = COUNT(*) FROM HumanResources.Employee
+SELECT * FROM HumanResources.Employee
 WHERE Gender = 'M' AND MaritalStatus = 'S' AND @startDate <= BirthDate AND BirthDate <= @endDate
+SET @count = @@ROWCOUNT
 GO
 
 --Пример
@@ -75,6 +83,6 @@ DECLARE @startDate date, @endDate date, @count int
 SET @startDate = DATEFROMPARTS(1983, 1, 1) 
 SET @endDate = DATEFROMPARTS(1984, 8, 16)
 EXEC SingleMen @startDate, @endDate, @count OUTPUT
-PRINT N'Количество найденных записей: ' + CONVERT(VARCHAR, @count)
+SELECT @count AS Count
 
 DROP PROCEDURE SingleMen
