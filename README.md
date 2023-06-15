@@ -67,8 +67,7 @@ FROM (SELECT emp.OrganizationLevel, emp.BusinessEntityID AS EmployeeID, emp.Hire
 FROM HumanResources.Employee emp
 INNER JOIN Person.Person ON Person.BusinessEntityID = emp.BusinessEntityID) TAB
 WHERE HireDateDirector > HireDate AND BirthDateDirector > BirthDate
-ORDER BY OrganizationLevel, FIODirector, FIO 
-GO
+ORDER BY OrganizationLevel, FIODirector, FIO
 ```
 ### Задача 7
 ```
