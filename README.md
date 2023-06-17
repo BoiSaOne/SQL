@@ -2,7 +2,6 @@
 
 ```
 -- Задача 1
-DROP INDEX  IX_WebLog_SessionStart ON Marketing.WebLog 
 CREATE INDEX IX_WebLog_SessionStart_ServerID ON Marketing.WebLog (SessionStart DESC, ServerID DESC) INCLUDE (SessionID, UserName);
 
 DECLARE @StartTime datetime2 = '2010-08-30 16:27';
